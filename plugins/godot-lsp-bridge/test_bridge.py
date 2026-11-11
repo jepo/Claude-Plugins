@@ -193,8 +193,9 @@ def test_startup_while_godot_closed_then_comes_up():
         caps = c.response(1)["result"]["capabilities"]
         assert time.time() - t < 2, "initialize was not answered immediately"
         for key in ("definitionProvider", "referencesProvider", "hoverProvider", "documentSymbolProvider",
-                    "workspaceSymbolProvider", "completionProvider"):
+                    "completionProvider"):
             assert caps.get(key), key
+        assert not caps.get("workspaceSymbolProvider"), "Godot has no workspace/symbol"
         c.notify("initialized")
         c.notify("textDocument/didOpen", doc("file:///C:/proj/a.gd", "var a = 1\n"))
         t = time.time()

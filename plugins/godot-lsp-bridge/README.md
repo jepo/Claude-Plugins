@@ -1,7 +1,7 @@
 # godot-lsp-bridge
 
 A Claude Code plugin that gives Claude GDScript code intelligence (definition, references,
-hover, document and workspace symbols, completion, diagnostics) for `.gd` files. It relays between
+hover, document symbols, completion, diagnostics) for `.gd` files. It relays between
 Claude Code (LSP over stdio) and the Godot editor's built-in language server (LSP over TCP,
 `127.0.0.1:6005`). Python standard library only; no netcat needed.
 

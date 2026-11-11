@@ -29,7 +29,7 @@ UP_MESSAGE = f"The {ENGINE} editor's language server is connected again."
 CAPABILITIES = {
     "textDocumentSync": {"openClose": True, "change": 1, "save": {"includeText": False}},
     "definitionProvider": True, "referencesProvider": True, "hoverProvider": True,
-    "documentSymbolProvider": True, "workspaceSymbolProvider": True,
+    "documentSymbolProvider": True,  # no workspace symbols: Godot answers "Method not found"
     "completionProvider": {"triggerCharacters": [".", "$", "\"", "'"]},
 }
 # Tunables (environment overrides exist for the tests).
