@@ -1,7 +1,8 @@
-# lsp-bridges
+# Jepo's Plugins
 
-Claude Code plugins that connect Claude to a game engine's built-in language server. Each lives in
-`plugins/<name>/`; this folder is also a local plugin marketplace (`.claude-plugin/marketplace.json`).
+Claude Code plugins by jepo. Each lives in `plugins/<name>/`; this repository is also a plugin
+marketplace named `jepo-plugins` (`.claude-plugin/marketplace.json`). So far they all connect Claude
+to a game engine's built-in language server.
 
 | Plugin | Engine | What it does |
 |---|---|---|
@@ -16,7 +17,7 @@ In a Claude Code session (or `claude plugin ...` in a terminal), with the Godot 
 
 ```
 /plugin marketplace add jepo/Godot-LSP-Bridge
-/plugin install godot-lsp-bridge@lsp-bridges
+/plugin install godot-lsp-bridge@jepo-plugins
 ```
 
 Then start a new session or run `/reload-plugins`. For a one-session trial from a local clone:

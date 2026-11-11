@@ -1,7 +1,7 @@
 {
-  "name": "lsp-bridges",
+  "name": "jepo-plugins",
   "owner": {
-    "name": "Local"
+    "name": "jepo"
   },
   "plugins": [
     {

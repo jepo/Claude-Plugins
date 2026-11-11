@@ -40,8 +40,8 @@ another engine can copy them.
 plugin (the marketplace is `../../.claude-plugin/marketplace.json`), in a Claude Code session:
 
 ```
-/plugin marketplace add <path to the lsp-bridges folder>
-/plugin install godot-lsp-bridge@lsp-bridges
+/plugin marketplace add jepo/Godot-LSP-Bridge
+/plugin install godot-lsp-bridge@jepo-plugins
 ```
 
 (or `claude plugin marketplace add ...` / `claude plugin install ...` in a terminal). For one
