@@ -29,10 +29,20 @@ Then start a new session or run `/reload-plugins`.
 Claude does not check GitHub for new releases by itself, so refresh the marketplace, then the
 plugin:
 
-- Claude desktop app: Discover > Code, update the `jepo-plugins` marketplace there, then start a
-  new session or run `/reload-plugins`.
-- Claude Code CLI: `/plugin marketplace update jepo-plugins`, then
-  `/plugin update godot-lsp-bridge@jepo-plugins`, then `/reload-plugins`.
+**Claude desktop app:** Discover > Code, update the `jepo-plugins` marketplace there, then start a
+new session or run `/reload-plugins`. Or type this in a session instead of using the menus:
+
+```
+/plugin marketplace update jepo-plugins
+```
+
+**Claude Code CLI:**
+
+```
+/plugin marketplace update jepo-plugins
+/plugin update godot-lsp-bridge@jepo-plugins
+/reload-plugins
+```
 
 ### Notes
 
