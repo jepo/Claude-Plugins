@@ -1,0 +1,30 @@
+{
+  "name": "godot-lsp-bridge",
+  "version": "1.0.0",
+  "description": "GDScript code intelligence by relaying to the Godot editor's built-in language server (fail-safe Python bridge, no netcat needed)",
+  "lspServers": {
+    "gdscript": {
+      "command": "python",
+      "args": [
+        "-I",
+        "${CLAUDE_PLUGIN_ROOT}/scripts/godot_lsp_bridge.py"
+      ],
+      "extensionToLanguage": {
+        ".gd": "gdscript"
+      }
+    }
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -I \"${CLAUDE_PLUGIN_ROOT}/scripts/godot_lsp_check.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

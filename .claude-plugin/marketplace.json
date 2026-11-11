@@ -1,0 +1,13 @@
+{
+  "name": "lsp-bridges",
+  "owner": {
+    "name": "Local"
+  },
+  "plugins": [
+    {
+      "name": "godot-lsp-bridge",
+      "source": "./plugins/godot-lsp-bridge",
+      "description": "GDScript code intelligence by relaying to the Godot editor's built-in language server (fail-safe, no netcat needed)"
+    }
+  ]
+}
