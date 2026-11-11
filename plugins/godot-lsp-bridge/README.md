@@ -17,9 +17,13 @@ bridge connects to it as one more client, alongside the editor's own script edit
 
 - The bridge never fails Claude's startup: it answers `initialize` itself at once, even when Godot
   is closed, then connects to Godot in the background, retrying every 1 s growing to 10 s.
+- A request that arrives before the first connection attempt has finished waits for it, up to 3 s
+  (`GODOT_LSP_BRIDGE_FIRST_WAIT`), so the first call of a session does not fail just because the
+  bridge has not connected yet.
 - While Godot is unreachable, every request gets an immediate error saying the Godot editor is not
   running and the user should open the project in it, plus a `window/showMessage` with
-  the same text at most once a minute.
+  the same text at most once a minute. Claude Code passes the request error to the model verbatim;
+  the `window/showMessage` notices do not appear to reach the model.
 - If Godot closes mid-session, in-flight requests fail at once with that error and the bridge
   reconnects. On reconnect it redoes the handshake with the original `rootUri`, reopens every
   document Claude has open (with the latest text, incremental edits applied) and sends a
@@ -29,6 +33,14 @@ bridge connects to it as one more client, alongside the editor's own script edit
 - stdout carries LSP messages only. Logs go to `.claude/logs/godot_lsp_bridge.log` in the project
   (or the file named by `GODOT_LSP_BRIDGE_LOG`), never to stdout. It exits 0 on `exit` or when
   stdin closes.
+
+## What works
+
+Checked against Godot 4.7 through Claude Code's LSP tool: `goToDefinition`, `findReferences`,
+`hover` and `documentSymbol` work. Godot has no `workspaceSymbol`, `goToImplementation` or call
+hierarchy (`prepareCallHierarchy`, `incomingCalls`, `outgoingCalls`). Claude Code sends those
+anyway, whatever the server advertises, so the bridge turns Godot's "Method not found" into an
+error that names the operations that do work.
 
 Settings: `GODOT_LSP_HOST` and `GODOT_LSP_PORT` (defaults `127.0.0.1`, `6005`). The engine name,
 port and the "open the editor" wording are constants at the top of each script, so a bridge for
@@ -49,6 +61,11 @@ session without installing: `claude --plugin-dir <path>/plugins/godot-lsp-bridge
 local marketplace runs in place, so edits apply at the next session start or after
 `/reload-plugins`. Load errors show under `/plugin` > Errors, or with `claude --debug`.
 
+To pick up a new release: `/plugin marketplace update jepo-plugins`, then
+`/plugin update godot-lsp-bridge@jepo-plugins`, then `/reload-plugins`. The installed copy is cached
+by the `version` in `.claude-plugin/plugin.json`, so every released change bumps it (patch for fixes
+and tweaks, minor for new features, major only by explicit decision).
+
 The message that asks the user to open the editor names the project: set `GODOT_LSP_PROJECT`, or it
 uses the name of the folder Claude Code was started in.
 
@@ -62,7 +79,8 @@ python -I test_bridge.py
 
 The tests drive the bridge over stdio against a fake language server on a free port, covering
 startup with Godot closed, error and showMessage throttling, relaying and id mapping, dropped and
-server-initiated messages, timeouts, a mid-session drop with reconnect and document replay,
+server-initiated messages, the unsupported-operation error, the capped wait for the first
+connection, timeouts, a mid-session drop with reconnect and document replay,
 shutdown/exit/EOF, and the check script. The last test runs a read-only smoke test against the
 real Godot editor on port 6005; it needs the editor open and `GODOT_LSP_TEST_FILE` (a `.gd` file in
 the open project) and `GODOT_LSP_TEST_SYMBOL` (a name declared there and used elsewhere), and is

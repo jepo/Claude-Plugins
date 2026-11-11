@@ -23,6 +23,14 @@ In a Claude Code session (or `claude plugin ...` in a terminal), with the Godot 
 Then start a new session or run `/reload-plugins`. For a one-session trial from a local clone:
 `claude --plugin-dir <clone>/plugins/godot-lsp-bridge`.
 
+## Versioning
+
+Each plugin has its own version, in `plugins/<name>/.claude-plugin/plugin.json` (not in
+`marketplace.json`). Claude Code caches installed plugins by that version, so every released change
+bumps it: patch for bug fixes and minor tweaks, minor for new features, major only by explicit
+decision. A new plugin gets its own folder under `plugins/` and its own entry in
+`.claude-plugin/marketplace.json`.
+
 ## Licence
 
 MIT, see `LICENSE`.

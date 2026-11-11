@@ -26,6 +26,9 @@ DOWN_MESSAGE = (f"The {ENGINE} editor is not running or its language server is n
                 f"{HOST}:{PORT}. Ask the user to open the {PROJECT} project in the {ENGINE} editor "
                 f"(the language server only runs while the editor is open), then retry.")
 UP_MESSAGE = f"The {ENGINE} editor's language server is connected again."
+# Claude Code sends every LSP tool operation whatever the capabilities say, so name the ones that work.
+UNSUPPORTED_MESSAGE = (f"The {ENGINE} language server does not support %s. Use goToDefinition, findReferences, "
+                       f"hover or documentSymbol instead.")
 CAPABILITIES = {
     "textDocumentSync": {"openClose": True, "change": 1, "save": {"includeText": False}},
     "definitionProvider": True, "referencesProvider": True, "hoverProvider": True,
@@ -35,6 +38,8 @@ CAPABILITIES = {
 # Tunables (environment overrides exist for the tests).
 REQUEST_TIMEOUT = float(os.environ.get("GODOT_LSP_BRIDGE_TIMEOUT", "15"))
 MAX_BACKOFF = float(os.environ.get("GODOT_LSP_BRIDGE_MAX_BACKOFF", "10"))
+# Requests that arrive before the first connection attempt has finished wait up to this long for it.
+FIRST_WAIT = float(os.environ.get("GODOT_LSP_BRIDGE_FIRST_WAIT", "3"))
 NOTICE_INTERVAL = 60.0
 REQUEST_FAILED = -32803
 
@@ -126,7 +131,8 @@ class Bridge:
         self.sock = None            # set only while the handshake with Godot is complete
         self.init_params = None     # Claude's initialize params, reused for every handshake
         self.initialized = threading.Event()
-        self.pending = {}           # godot id -> (claude id, deadline)
+        self.first_attempt = threading.Event()  # set once the first connection attempt has finished
+        self.pending = {}           # godot id -> (claude id, deadline, method)
         self.next_id = 0
         self.docs = {}              # uri -> {"languageId", "version", "text"}
         self.last_notice = 0.0
@@ -182,7 +188,7 @@ class Bridge:
         except OSError:
             pass
         log("lost the %s connection; failing %d in-flight request(s)" % (ENGINE, len(failed)))
-        for cid, _ in failed:
+        for cid, _, _ in failed:
             self.error_to_claude(cid)
         self.notice()
 
@@ -201,18 +207,33 @@ class Bridge:
             self.initialized.set()
         elif method == "shutdown":
             self.to_claude({"jsonrpc": "2.0", "id": cid, "result": None})
+        elif self.sock is None and not self.first_attempt.is_set():
+            # Just started: give the first connection a moment rather than failing at once.
+            threading.Thread(target=self.forward_after_first_attempt, args=(msg,), daemon=True).start()
         else:
-            with self.lock:
-                sock = self.sock
-                if sock is not None:
-                    self.next_id += 1
-                    gid = self.next_id
-                    self.pending[gid] = (cid, time.monotonic() + REQUEST_TIMEOUT)
-            if sock is None:
-                self.error_to_claude(cid)
-                self.notice()
-            else:
-                self.to_godot(dict(msg, id=gid), sock)
+            self.forward(msg)
+
+    def forward_after_first_attempt(self, msg):
+        self.first_attempt.wait(FIRST_WAIT)
+        try:
+            self.forward(msg)
+        except Exception:
+            log("error forwarding a held request: " + traceback.format_exc())
+            self.error_to_claude(msg["id"], "Internal bridge error; see " + LOG_NAME)
+
+    def forward(self, msg):
+        cid = msg["id"]
+        with self.lock:
+            sock = self.sock
+            if sock is not None:
+                self.next_id += 1
+                gid = self.next_id
+                self.pending[gid] = (cid, time.monotonic() + REQUEST_TIMEOUT, msg["method"])
+        if sock is None:
+            self.error_to_claude(cid)
+            self.notice()
+        else:
+            self.to_godot(dict(msg, id=gid), sock)
 
     def claude_notification(self, method, params, msg):
         if method == "exit":
@@ -220,7 +241,7 @@ class Bridge:
             os._exit(0)
         if method == "$/cancelRequest":
             with self.lock:
-                gid = next((g for g, (c, _) in self.pending.items() if c == params.get("id")), None)
+                gid = next((g for g, (c, _, _) in self.pending.items() if c == params.get("id")), None)
             if gid is not None:
                 self.to_godot({"jsonrpc": "2.0", "method": method, "params": {"id": gid}})
             return
@@ -254,10 +275,12 @@ class Bridge:
                 sock = socket.create_connection((HOST, PORT), timeout=3)
                 sock.settimeout(5)
                 buf = self.handshake(sock)
+                self.first_attempt.set()
                 delay = 1.0
                 self.read_loop(sock, buf)
             except Exception as e:
                 log("%s not reachable: %s" % (ENGINE, e))
+                self.first_attempt.set()
                 if first:
                     self.notice()
             first = False
@@ -334,15 +357,18 @@ class Bridge:
                 entry = self.pending.pop(gid, None)
             if entry is None:
                 log("dropped a response for unknown id %r" % (gid,))
-            else:
-                self.to_claude(dict(msg, id=entry[0]))
+                return
+            cid, _, requested = entry
+            if (msg.get("error") or {}).get("code") == -32601:  # Method not found
+                return self.error_to_claude(cid, UNSUPPORTED_MESSAGE % requested)
+            self.to_claude(dict(msg, id=cid))
 
     def timeout_loop(self):
         while True:
             time.sleep(0.25)
             now = time.monotonic()
             with self.lock:
-                expired = [g for g, (_, d) in self.pending.items() if d < now]
+                expired = [g for g, (_, d, _) in self.pending.items() if d < now]
                 entries = [(g, self.pending.pop(g)[0]) for g in expired]
             for gid, cid in entries:
                 self.error_to_claude(cid, "The %s language server did not answer within %ds. If the editor is "

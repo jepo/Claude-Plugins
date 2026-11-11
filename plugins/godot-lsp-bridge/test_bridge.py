@@ -50,8 +50,9 @@ def read_frames(stream, sink, raw_errors):
 class FakeServer:
     """A stand-in for Godot's language server. Can be stopped (port closed) and restarted."""
 
-    def __init__(self, port=0):
+    def __init__(self, port=0, init_delay=0.0):
         self.port, self.received, self.conns, self.listener = port, queue.Queue(), [], None
+        self.init_delay = init_delay  # seconds before answering initialize (a slow editor)
         self.start()
 
     def start(self):
@@ -94,6 +95,7 @@ class FakeServer:
             m, i = msg.get("method"), msg.get("id")
             try:
                 if m == "initialize":
+                    time.sleep(self.init_delay)
                     send({"jsonrpc": "2.0", "id": "srv-1", "method": "gdscript_client/changeWorkspace", "params": {}})
                     send({"jsonrpc": "2.0", "method": "gdscript/capabilities", "params": {}})
                     send({"jsonrpc": "2.0", "id": i, "result": {"capabilities": {"hoverProvider": True}}})
@@ -104,6 +106,8 @@ class FakeServer:
                     send({"jsonrpc": "2.0", "id": i, "result": [{"name": "Sym", "echo_id": i}]})
                 elif m == "textDocument/hover":
                     pass  # never answers: used for timeout and mid-request drop tests
+                elif m is not None and i is not None and m != "shutdown":  # what Godot says for anything it lacks
+                    send({"jsonrpc": "2.0", "id": i, "error": {"code": -32601, "message": "Method not found: " + m}})
             except OSError:
                 return
 
@@ -122,9 +126,9 @@ class FakeServer:
 class Client:
     """Plays Claude Code: talks to the bridge over its stdin/stdout."""
 
-    def __init__(self, port, timeout="2", host="127.0.0.1"):
+    def __init__(self, port, timeout="2", host="127.0.0.1", first_wait="3"):
         env = dict(os.environ, GODOT_LSP_PROJECT=GAME, GODOT_LSP_HOST=host, GODOT_LSP_PORT=str(port), GODOT_LSP_BRIDGE_TIMEOUT=timeout,
-                   GODOT_LSP_BRIDGE_MAX_BACKOFF="1", GODOT_LSP_BRIDGE_LOG=str(LOG))
+                   GODOT_LSP_BRIDGE_MAX_BACKOFF="1", GODOT_LSP_BRIDGE_LOG=str(LOG), GODOT_LSP_BRIDGE_FIRST_WAIT=first_wait)
         self.proc = subprocess.Popen([sys.executable, "-I", str(BRIDGE)], stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
         self.inbox, self.raw_errors, self.seen = queue.Queue(), [], []
@@ -201,12 +205,15 @@ def test_startup_while_godot_closed_then_comes_up():
         t = time.time()
         c.request("r2", "textDocument/definition", {"textDocument": {"uri": "file:///C:/proj/a.gd"},
                                                      "position": {"line": 0, "character": 4}})
-        err = c.response("r2")["error"]
-        assert time.time() - t < 1, "error was not prompt"
+        err = c.response("r2")["error"]  # may wait for the first connection attempt, at most 3s
+        assert time.time() - t < 3.5, "first error took %.1fs" % (time.time() - t)
         assert "not running" in err["message"] and GAME in err["message"], err
-        c.expect(is_show("not running"))
+        c.drain(0.2)  # the notice may come before or after the error
+        assert [m for m in c.seen if is_show("not running")(m)], "no notice"
+        t = time.time()
         c.request(3, "textDocument/hover", {})
         assert "error" in c.response(3)
+        assert time.time() - t < 1, "error after the first attempt was not prompt"
         c.drain()
         shows = [m for m in c.seen if m.get("method") == "window/showMessage"]
         assert len(shows) == 1, "showMessage not throttled: %d" % len(shows)
@@ -244,11 +251,47 @@ def test_relay_ids_drops_and_server_requests():
         assert [m for m in c.seen if m.get("method") == "textDocument/publishDiagnostics"], "notification not relayed"
         assert not [m for m in c.seen if m.get("id") == 99999], "a response for an unknown id was forwarded"
         assert not [m for m in c.seen if str(m.get("method", "")).startswith("gdscript")], "Godot-only message forwarded"
+        # Claude Code sends operations Godot lacks anyway; the error should say what does work.
+        c.request("impl", "textDocument/implementation", {})
+        err = c.response("impl")["error"]
+        assert "does not support textDocument/implementation" in err["message"], err
+        assert "findReferences" in err["message"], err
         # Garbage on stdin must not kill the bridge.
         c.send(b"Content-Length: 5\r\n\r\n{bad}")
         c.send(b"Content-Length: x\r\n\r\n")
         c.request(8, "textDocument/documentSymbol", {"textDocument": {"uri": "file:///C:/x.gd"}})
         assert "result" in c.response(8)
+    finally:
+        c.close()
+        server.stop()
+
+
+def test_first_request_waits_for_first_connection():
+    # A slow handshake: without the wait, a request sent right after initialize gets "not running".
+    server = FakeServer(init_delay=0.8)
+    c = Client(server.port)
+    try:
+        c.request(1, "initialize", {"rootUri": ROOT_URI})
+        c.response(1)
+        c.notify("initialized")
+        c.request(2, "textDocument/documentSymbol", {"textDocument": {"uri": "file:///C:/x.gd"}})
+        res = c.response(2)
+        assert res.get("result") and res["result"][0]["name"] == "Sym", res
+        c.drain(0.2)
+        assert not [m for m in c.seen if m.get("method") == "window/showMessage"], "spurious notice"
+    finally:
+        c.close()
+        server.stop()
+    # The wait is capped: a handshake slower than the cap still gets a prompt error.
+    server = FakeServer(init_delay=3)
+    c = Client(server.port, first_wait="0.5")
+    try:
+        c.request(1, "initialize", {"rootUri": ROOT_URI})
+        c.response(1)
+        t = time.time()
+        c.request(2, "textDocument/documentSymbol", {"textDocument": {"uri": "file:///C:/x.gd"}})
+        assert "not running" in c.response(2)["error"]["message"]
+        assert time.time() - t < 1.5, "the wait was not capped: %.1fs" % (time.time() - t)
     finally:
         c.close()
         server.stop()
