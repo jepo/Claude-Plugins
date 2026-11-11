@@ -12,15 +12,16 @@ of its scripts.
 
 ## Install
 
-In a Claude Code session (or `claude plugin ...` in a terminal), with the full path to this folder:
+In a Claude Code session (or `claude plugin ...` in a terminal), with the Godot editor open:
 
 ```
-/plugin marketplace add C:/Users/jepo/Documents/Projects/godot-lsp-bridge
+/plugin marketplace add jepo/Godot-LSP-Bridge
 /plugin install godot-lsp-bridge@lsp-bridges
 ```
 
-For a one-session trial without installing: `claude --plugin-dir <this folder>/plugins/godot-lsp-bridge`.
+Then start a new session or run `/reload-plugins`. For a one-session trial from a local clone:
+`claude --plugin-dir <clone>/plugins/godot-lsp-bridge`.
 
 ## Licence
 
-None chosen yet; add a `LICENSE` before publishing.
+MIT, see `LICENSE`.
