@@ -41,19 +41,12 @@ plugin's version in its table.
 
 ## Plugins
 
-- Keep the plugin scripts standard-library Python. The user's Windows machine has `python` but no
-  `python3` and no `nc`.
-- Add or update a test for any behaviour you change, and run the plugin's tests before committing
-  (for godot-lsp-bridge: `python -I test_bridge.py` from `plugins/godot-lsp-bridge`).
+- Before working on a plugin, read its own rules file, linked below, and follow it alongside this
+  one.
+- Add or update a test for any behaviour you change, and run the plugin's tests before committing.
+- A new plugin gets its own `plugins/<name>/CLAUDE.md` for the rules that only apply to it, linked
+  from the list below. Rules that apply to every plugin stay in this file.
 
-### godot-lsp-bridge
+Plugin rules:
 
-- Never close, kill, restart or launch the user's Godot editor. Test down/up behaviour with the fake
-  server in the tests, or ask the user to close or open the editor.
-- The real-editor smoke test runs when `GODOT_LSP_TEST_FILE` and `GODOT_LSP_TEST_SYMBOL` are set,
-  for example `C:\Users\jepo\Documents\Projects\GalaxyGame\scripts\systems\save_games.gd` and
-  `SlotPath`. It is read-only and safe to run while the editor is open.
-- The GalaxyGame project denies reading `.claude/logs` through the Read tool; use Bash to look at
-  the bridge log there (`.claude/logs/godot_lsp_bridge.log`).
-- Fail-safe behaviour is the point of the bridge: it must never crash, hang or exit non-zero, must
-  write only LSP frames to stdout, and must log to a file only.
+- [godot-lsp-bridge](plugins/godot-lsp-bridge/CLAUDE.md)
