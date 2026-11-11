@@ -64,9 +64,7 @@ local marketplace runs in place, so edits apply at the next session start or aft
 To pick up a new release: `/plugin marketplace update jepo-plugins`, then
 `/plugin update godot-lsp-bridge@jepo-plugins`, then `/reload-plugins`. In the Claude desktop app,
 update the marketplace from Discover > Code instead, then start a new session or run
-`/reload-plugins`. Claude does not check GitHub for new releases by itself. The installed copy is cached
-by the `version` in `.claude-plugin/plugin.json`, so every released change bumps it (patch for fixes
-and tweaks, minor for new features, major only by explicit decision).
+`/reload-plugins`. Claude does not check GitHub for new releases by itself.
 
 The message that asks the user to open the editor names the project: set `GODOT_LSP_PROJECT`, or it
 uses the name of the folder Claude Code was started in.

@@ -30,7 +30,8 @@ Claude does not check GitHub for new releases by itself, so refresh the marketpl
 plugin:
 
 **Claude desktop app:** Discover > Code, update the `jepo-plugins` marketplace there, then start a
-new session or run `/reload-plugins`. Or type this in a session instead of using the menus:
+new session or run `/reload-plugins`. Typing this in a session opens the same marketplace screen,
+where you run the update:
 
 ```
 /plugin marketplace update jepo-plugins
