@@ -1,7 +1,7 @@
 # godot-lsp-bridge
 
-A Claude Code plugin that gives Claude GDScript code intelligence (definition, references,
-hover, document symbols, completion, diagnostics) for `.gd` files. It relays between
+A Claude Code plugin that gives Claude go-to-definition, find-references, hover and document
+symbols for `.gd` files (see [What works](#what-works)). It relays between
 Claude Code (LSP over stdio) and the Godot editor's built-in language server (LSP over TCP,
 `127.0.0.1:6005`). Python standard library only; no netcat needed.
 
@@ -37,7 +37,8 @@ bridge connects to it as one more client, alongside the editor's own script edit
 ## What works
 
 Checked against Godot 4.7 through Claude Code's LSP tool: `goToDefinition`, `findReferences`,
-`hover` and `documentSymbol` work. Godot has no `workspaceSymbol`, `goToImplementation` or call
+`hover` and `documentSymbol` work. Those four are the only operations that have been checked; other
+messages are relayed to Godot as they are, without any guarantee that they work. Godot has no `workspaceSymbol`, `goToImplementation` or call
 hierarchy (`prepareCallHierarchy`, `incomingCalls`, `outgoingCalls`). Claude Code sends those
 anyway, whatever the server advertises, so the bridge turns Godot's "Method not found" into an
 error that names the operations that do work.

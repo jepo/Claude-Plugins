@@ -1,6 +1,6 @@
 {
   "name": "godot-lsp-bridge",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "GDScript code intelligence by relaying to the Godot editor's built-in language server (fail-safe Python bridge, no netcat needed)",
   "lspServers": {
     "gdscript": {

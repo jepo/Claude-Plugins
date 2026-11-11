@@ -4,7 +4,7 @@ Claude Code plugins by jepo. This repository is also a plugin marketplace named 
 
 | Plugin | Version | Engine | What it does |
 |---|---|---|---|
-| [godot-lsp-bridge](#godot-lsp-bridge) | 1.0.1 | Godot 4 (GDScript) | GDScript code intelligence through the Godot editor's language server; fails safe and asks you to open the editor when it is closed |
+| [godot-lsp-bridge](#godot-lsp-bridge) | 1.0.2 | Godot 4 (GDScript) | GDScript code intelligence through the Godot editor's language server; fails safe and asks you to open the editor when it is closed |
 
 ## godot-lsp-bridge
 
