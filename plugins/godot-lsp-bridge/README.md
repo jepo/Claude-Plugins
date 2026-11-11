@@ -62,7 +62,9 @@ local marketplace runs in place, so edits apply at the next session start or aft
 `/reload-plugins`. Load errors show under `/plugin` > Errors, or with `claude --debug`.
 
 To pick up a new release: `/plugin marketplace update jepo-plugins`, then
-`/plugin update godot-lsp-bridge@jepo-plugins`, then `/reload-plugins`. The installed copy is cached
+`/plugin update godot-lsp-bridge@jepo-plugins`, then `/reload-plugins`. In the Claude desktop app,
+update the marketplace from Discover > Code instead, then start a new session or run
+`/reload-plugins`. Claude does not check GitHub for new releases by itself. The installed copy is cached
 by the `version` in `.claude-plugin/plugin.json`, so every released change bumps it (patch for fixes
 and tweaks, minor for new features, major only by explicit decision).
 

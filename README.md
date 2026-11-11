@@ -23,6 +23,14 @@ In a Claude Code session (or `claude plugin ...` in a terminal), with the Godot 
 Then start a new session or run `/reload-plugins`. For a one-session trial from a local clone:
 `claude --plugin-dir <clone>/plugins/godot-lsp-bridge`.
 
+To update after a new release, refresh the marketplace, then the plugin. Claude does not check
+GitHub for new releases by itself:
+
+- Claude desktop app: Discover > Code, update the `jepo-plugins` marketplace there, then start a
+  new session or run `/reload-plugins`.
+- Claude Code CLI: `/plugin marketplace update jepo-plugins`, then
+  `/plugin update godot-lsp-bridge@jepo-plugins`, then `/reload-plugins`.
+
 ## Versioning
 
 Each plugin has its own version, in `plugins/<name>/.claude-plugin/plugin.json` (not in
