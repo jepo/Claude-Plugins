@@ -16,7 +16,7 @@ of its scripts.
 In a Claude Code session (or `claude plugin ...` in a terminal), with the Godot editor open:
 
 ```
-/plugin marketplace add jepo/Godot-LSP-Bridge
+/plugin marketplace add jepo/Jepos-Claude-Plugins
 /plugin install godot-lsp-bridge@jepo-plugins
 ```
 
